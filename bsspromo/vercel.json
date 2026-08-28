@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "comment": "Pemeliharaan harian 00:00 WIB (17:00 UTC): buang nonce & cache kedaluwarsa, tandai klaim/voucher yang lewat waktu. Vercel mengirim header Authorization: Bearer $CRON_SECRET secara otomatis, jadi tidak ada rahasia yang perlu ditulis di sini.",
+      "path": "/api/cron/cleanup",
+      "schedule": "0 17 * * *"
+    }
+  ]
+}

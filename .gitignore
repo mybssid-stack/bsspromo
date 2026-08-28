@@ -1,0 +1,32 @@
+# ── Rahasia — JANGAN pernah masuk Git ──
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# ── Back office cPanel: berisi password DB, API key AI, dan data pelanggan ──
+back_office_php/
+
+# ── Dump database ──
+*.sql
+!neon-schema.sql
+
+# ── Node / Next.js ──
+node_modules/
+.next/
+out/
+dist/
+.vercel/
+npm-debug.log*
+yarn-error.log*
+
+# ── Sistem ──
+.DS_Store
+Thumbs.db
+
+# ── Berkas desain (.dc.html) ──
+# Dikecualikan bukan karena besar, tapi karena mock-up-nya memuat contoh
+# Midtrans server key. Simpan lokal saja, jangan sampai ke GitHub.
+bss-promo-lcd-landing-page/
+promo-landing-page-dengan-midtrans/

@@ -1,0 +1,74 @@
+@import 'tailwindcss';
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Token warna diambil dari berkas desain BSS (.dc.html): merah #E11B22,
+   tinta #14161A, garis #E3E5E9. Tema terang, bukan gelap — nota dan voucher
+   sering difoto/di-screenshot, dan latar terang jauh lebih terbaca di layar
+   HP yang silau di dalam toko.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --color-bss: #e11b22;
+  --color-bss-dark: #b0151b;
+  --color-bss-tint: #fff3f3;
+  --color-bss-line: #ffd9db;
+
+  --color-ink: #14161a;
+  --color-ink-2: #3d4248;
+  --color-muted: #6b7076;
+  --color-muted-2: #9aa0a6;
+
+  --color-line: #e3e5e9;
+  --color-line-2: #f0f1f3;
+  --color-canvas: #fafafb;
+  --color-ok: #0b7a3e;
+  --color-ok-bg: #eefbf3;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --radius-card: 18px;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Angka sejajar di tabel harga & nominal — kolom rupiah jadi rapi. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes bss-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.anim-up {
+  animation: bss-fade-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-up {
+    animation: none;
+  }
+}
+
+/* Sembunyikan tombol spinner input angka. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
