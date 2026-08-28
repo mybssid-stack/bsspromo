@@ -11,12 +11,26 @@ export const dynamic = 'force-dynamic';
 /**
  * Pencarian promo untuk bilah pencarian di landing page.
  *
- * Dua jalur pencocokan sengaja digabung:
- *   1. ILIKE  — cocok untuk potongan kata yang diketik lengkap ("note 12").
- *   2. trigram similarity — menolong salah ketik ("xiomi" → "xiaomi") dan
- *      urutan kata yang terbalik.
- * Tanpa yang kedua, orang yang mengetik merek dengan ejaan sendiri akan
- * melihat halaman kosong dan menyangka HP-nya tidak didukung.
+ * Dua jalur pencocokan digabung:
+ *   1. ILIKE — untuk potongan kata yang diketik lengkap ("note 8").
+ *   2. word_similarity — untuk salah eja ("xiomi" → Xiaomi, "samsong" →
+ *      Samsung, "opo" → Oppo).
+ *
+ * Dipakai word_similarity(), BUKAN similarity(). Bedanya penting di sini:
+ * similarity() membandingkan seluruh string, sementara search_text kami
+ * panjang (merek + model + kualitas + semua alias). Akibatnya skor apa pun
+ * jadi encer — diuji dengan katalog nyata, bahkan kata "xiaomi" yang dieja
+ * BENAR cuma dapat 0.241, di bawah ambang 0.28 yang semula dipakai.
+ * word_similarity() mencari padanan terbaik di batas kata, jadi "xiaomi"
+ * dapat 1.000 dan "xiomi" 0.444.
+ *
+ * Ambang 0.4 dipilih dari pengukuran, bukan tebakan: salah eja yang wajar
+ * ("samsong" 0.625, "xiomi" 0.444) lolos, sementara merek yang memang tidak
+ * ada ("nokia" 0.333, "huawei" 0.143, "kulkas" 0.000) tidak ikut terjaring.
+ *
+ * Katalog promo isinya puluhan baris, jadi pemindaian berurutan di sini
+ * hitungannya mikrodetik. Kalau suatu saat jadi ribuan tipe, ganti ke
+ * operator `<%` yang bisa memakai indeks GIN.
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -42,12 +56,12 @@ export async function GET(req: Request) {
               kondisiAktif,
               or(
                 sql`${promoItems.searchText} ILIKE ${'%' + q + '%'}`,
-                sql`similarity(${promoItems.searchText}, ${q}) > 0.28`,
+                sql`word_similarity(${q}, ${promoItems.searchText}) > 0.4`,
               ),
             ),
           )
           .orderBy(
-            desc(sql`similarity(${promoItems.searchText}, ${q})`),
+            desc(sql`word_similarity(${q}, ${promoItems.searchText})`),
             promoItems.sortOrder,
           )
           .limit(24)
@@ -72,6 +86,7 @@ export async function GET(req: Request) {
         warrantyDays: r.warrantyDays,
         note: r.note,
         habis: r.stock !== null && r.stock <= 0,
+        stock: r.stock,
       })),
     });
   } catch (e) {

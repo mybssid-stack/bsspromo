@@ -418,15 +418,21 @@ ORDER BY v.created_at DESC;
 -- ═══════════════════════════════════════════════════════════════════════════
 
 INSERT INTO app_settings (key, value) VALUES
-  ('promo.title',                '"Promo Ganti LCD"'::jsonb),
-  ('promo.subtitle',             '"Harga spesial, garansi 7 hari, dikerjakan teknisi BSS"'::jsonb),
+  ('promo.title',                '"Ganti LCD mulai Rp 185.000, garansi 7 hari"'::jsonb),
+  ('promo.subtitle',             '"Cari tipe HP kamu, bayar online, tunjukkan voucher di toko. Beres dalam 45 menit sambil ngopi."'::jsonb),
   ('promo.is_active',            'true'::jsonb),
-  ('promo.start_at',             '"2026-09-01T00:00:00+07:00"'::jsonb),
-  ('promo.end_at',               '"2026-09-30T23:59:59+07:00"'::jsonb),
+  -- Tanggal dihitung saat SQL ini dijalankan, bukan ditulis tetap.
+  -- Tanggal tetap bikin promo tampil "sudah tutup" atau "belum mulai" hanya
+  -- karena skemanya dipasang di hari yang berbeda dari yang diperkirakan.
+  -- start_at null = langsung aktif; end_at 30 hari ke depan = hitung mundur
+  -- di landing page langsung punya angka yang masuk akal.
+  ('promo.start_at',             'null'::jsonb),
+  ('promo.end_at',               to_jsonb(to_char((now() AT TIME ZONE 'Asia/Jakarta') + interval '30 days',
+                                                  'YYYY-MM-DD"T"23:59:59+07:00'))),
   ('promo.terms',                '["Garansi 7 hari sejak LCD terpasang","Voucher berlaku 30 hari sejak pembayaran","Voucher hanya bisa dipakai satu kali","Kehilangan gambar voucher? Hubungi CS BSS — kirim ulang wajib verifikasi nomor HP"]'::jsonb),
   ('promo.voucher_valid_days',   '30'::jsonb),
   ('promo.claim_expiry_minutes', '30'::jsonb),
-  ('store.name',                 '"BSS.id"'::jsonb),
+  ('store.name',                 '"BSS Service"'::jsonb),
   ('store.wa_cs',                '"6282252001234"'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
@@ -453,23 +459,25 @@ INSERT INTO api_clients (client_key, secret_hash, label, scopes) VALUES
    ARRAY['voucher:read','voucher:redeem'])
 ON CONFLICT (client_key) DO NOTHING;
 
--- Contoh daftar harga (harga diambil dari nota BSS yang sudah berjalan).
--- Silakan hapus/ubah lewat /admin/harga setelah aplikasi jalan.
+-- Daftar harga promo — angkanya diambil dari berkas desain BSS.
+-- Kolom aliases dipakai mesin pencari: pelanggan mengetik "y12s" atau
+-- "note8" dan tetap menemukan tipenya. Tambahkan sebanyak mungkin ejaan
+-- yang biasa dipakai orang, termasuk yang salah.
 INSERT INTO promo_items
   (brand, model, aliases, slug, part_type, quality_grade,
-   price_normal_idr, price_promo_idr, warranty_days, sort_order) VALUES
-  ('Vivo',    'Y91',          ARRAY['y91c','y93','y95','y1s','y90'], 'vivo-y91',        'LCD', 'Standart', 265000, 235000, 7, 10),
-  ('Vivo',    'Y95',          ARRAY['y-95'],                         'vivo-y95',        'LCD', 'Standart', 265000, 235000, 7, 20),
-  ('Vivo',    'Y12',          ARRAY['y12s','y15','y17'],             'vivo-y12',        'LCD', 'Standart', 265000, 235000, 7, 30),
-  ('Xiaomi',  'Redmi 9C',     ARRAY['9c','redmi9c'],                 'xiaomi-redmi-9c', 'LCD', 'Standart', 275000, 245000, 7, 40),
-  ('Xiaomi',  'Redmi Note 9', ARRAY['note 9','note9 4g'],            'xiaomi-note-9',   'LCD', 'Standart', 300000, 265000, 7, 50),
-  ('Xiaomi',  'Redmi Note 12',ARRAY['note 12','note12 4g'],          'xiaomi-note-12',  'LCD', 'Standart', 375000, 335000, 7, 60),
-  ('Realme',  'C2',           ARRAY['realme c2'],                    'realme-c2',       'LCD', 'Standart', 250000, 220000, 7, 70),
-  ('Samsung', 'A12',          ARRAY['a-12','a125'],                  'samsung-a12',     'LCD', 'Standart', 320000, 285000, 7, 80),
-  ('Samsung', 'A36',          ARRAY['a-36'],                         'samsung-a36',     'LCD', 'Premium',  575000, 525000, 7, 90),
-  ('OPPO',    'A12',          ARRAY['a-12','a5s','a7'],              'oppo-a12',        'LCD', 'Standart', 265000, 235000, 7, 100),
-  ('iPhone',  'XR',           ARRAY['iphone xr','10r'],              'iphone-xr',       'LCD', 'Incell',   450000, 415000, 7, 110),
-  ('Poco',    'M3',           ARRAY['m3 4g','poco m3'],              'poco-m3',         'LCD', 'Standart', 285000, 255000, 7, 120)
+   price_normal_idr, price_promo_idr, warranty_days, stock, sort_order) VALUES
+  ('Xiaomi',  'Redmi 9A',      ARRAY['redmi9a','9a','redmi 9 a'],                'xiaomi-redmi-9a',     'LCD', 'Original', 295000, 185000, 7, 15, 10),
+  ('Vivo',    'Vivo Y12',      ARRAY['y12','y12s','vivo y12s','y-12'],           'vivo-y12',            'LCD', 'Original', 320000, 199000, 7, 12, 20),
+  ('Oppo',    'Oppo A16',      ARRAY['a16','oppo a16k','a16e'],                  'oppo-a16',            'LCD', 'Original', 330000, 205000, 7,  4, 30),
+  ('Infinix', 'Infinix Hot 10',ARRAY['hot 10','hot10','infinix hot10'],          'infinix-hot-10',      'LCD', 'Original', 340000, 209000, 7, 10, 40),
+  ('Oppo',    'Oppo A57',      ARRAY['a57','oppo a57 2022'],                     'oppo-a57',            'LCD', 'Original', 350000, 219000, 7,  9, 50),
+  ('Realme',  'Realme C25',    ARRAY['c25','realme c25s','c25y'],                'realme-c25',          'LCD', 'Original', 360000, 229000, 7,  3, 60),
+  ('Samsung', 'Samsung A10s',  ARRAY['a10s','samsung a10','a107'],               'samsung-a10s',        'LCD', 'Original', 375000, 235000, 7,  8, 70),
+  ('Vivo',    'Vivo Y17',      ARRAY['y17','vivo y15','y12 y17'],                'vivo-y17',            'LCD', 'Original', 385000, 245000, 7,  7, 80),
+  ('Xiaomi',  'Redmi Note 8',  ARRAY['note 8','note8','redmi note8'],            'xiaomi-redmi-note-8', 'LCD', 'Original', 420000, 279000, 7,  6, 90),
+  ('Samsung', 'Samsung A12',   ARRAY['a12','samsung a12s','a125'],               'samsung-a12',         'LCD', 'Original', 445000, 289000, 7,  5, 100),
+  ('Apple',   'iPhone 7 Plus', ARRAY['iphone 7+','7 plus','ip7 plus','7plus'],   'apple-iphone-7-plus', 'LCD', 'Original', 690000, 465000, 7,  2, 110),
+  ('Apple',   'iPhone XR',     ARRAY['xr','ip xr','iphone10r','iphone 10r'],     'apple-iphone-xr',     'LCD', 'Original',1250000, 895000, 7,  2, 120)
 ON CONFLICT (slug) DO NOTHING;
 
 -- ═══════════════════════════════════════════════════════════════════════════

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ClaimModal from './ClaimModal';
-import { Badge, Spinner } from './ui';
+import { Spinner } from './ui';
 
 export type ItemPromo = {
   slug: string;
@@ -15,20 +15,29 @@ export type ItemPromo = {
   warrantyDays: number;
   note: string | null;
   habis: boolean;
+  stock: number | null;
 };
 
 const rupiah = (n: number) => 'Rp ' + (n || 0).toLocaleString('id-ID');
+const diskon = (normal: number, promo: number) =>
+  normal > promo ? Math.round(100 - (promo * 100) / normal) : 0;
 
-export default function SearchPromo({ awal }: { awal: ItemPromo[] }) {
+export default function SearchPromo({
+  awal,
+  populer,
+}: {
+  awal: ItemPromo[];
+  populer: string[];
+}) {
   const [q, setQ] = useState('');
   const [items, setItems] = useState<ItemPromo[]>(awal);
   const [memuat, setMemuat] = useState(false);
   const [sudahCari, setSudahCari] = useState(false);
   const [dipilih, setDipilih] = useState<ItemPromo | null>(null);
 
-  // Setiap permintaan membawa nomor urut. Respons yang datang terlambat
-  // untuk kata kunci lama diabaikan — tanpa ini, hasil "vi" bisa menimpa
-  // hasil "vivo y12" kalau jaringan sedang tersendat.
+  // Setiap permintaan membawa nomor urut. Respons yang datang terlambat untuk
+  // kata kunci lama diabaikan — tanpa ini, hasil "vi" bisa menimpa hasil
+  // "vivo y12" kalau jaringan sedang tersendat.
   const urut = useRef(0);
   const batal = useRef<AbortController | null>(null);
 
@@ -54,8 +63,8 @@ export default function SearchPromo({ awal }: { awal: ItemPromo[] }) {
     }
   }, []);
 
-  // Debounce: kueri baru dijalankan 320 ms setelah orang berhenti mengetik.
-  // Tanpa ini, "vivo y12" mengirim 8 permintaan berturut-turut.
+  // Debounce: kueri baru jalan 320 ms setelah orang berhenti mengetik. Tanpa
+  // ini, "vivo y12" mengirim delapan permintaan berturut-turut.
   useEffect(() => {
     const t = setTimeout(() => {
       void cari(q);
@@ -65,9 +74,10 @@ export default function SearchPromo({ awal }: { awal: ItemPromo[] }) {
 
   return (
     <div>
+      {/* ── Bilah pencarian ── */}
       <div className="relative">
         <svg
-          className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-2"
+          className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-2 sm:left-5"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -80,85 +90,118 @@ export default function SearchPromo({ awal }: { awal: ItemPromo[] }) {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Ketik tipe HP kamu — misal: Vivo Y12"
+          placeholder="Ketik tipe HP kamu — vivo y12, oppo a57, redmi 9a…"
           aria-label="Cari tipe HP"
           autoComplete="off"
-          className="w-full rounded-2xl border border-line bg-white py-4 pl-12 pr-12 text-[15px] font-medium shadow-sm outline-none transition placeholder:font-normal placeholder:text-muted-2 focus:border-bss focus:ring-4 focus:ring-bss/10"
+          className="w-full rounded-2xl border border-line bg-white py-4 pl-12 pr-24 text-[15px] font-semibold shadow-sm outline-none transition placeholder:font-normal placeholder:text-muted-2 focus:border-bss focus:ring-4 focus:ring-bss/10 sm:py-5 sm:pl-14 sm:text-[16px]"
         />
-        {memuat && (
-          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-2">
-            <Spinner />
+        <span className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-2 sm:right-5">
+          {memuat && <Spinner className="text-muted-2" />}
+          <span className="hidden rounded-lg bg-line-2 px-2.5 py-1.5 text-[11.5px] font-bold text-muted sm:inline">
+            {items.length} tipe
           </span>
-        )}
+        </span>
       </div>
 
-      <div className="mt-3 min-h-[18px] text-[13px] text-muted">
-        {sudahCari
-          ? items.length > 0
-            ? `${items.length} tipe cocok`
-            : 'Tipe itu belum masuk daftar promo.'
-          : 'Ketik untuk mencari, atau lihat pilihan populer di bawah.'}
-      </div>
+      {/* ── Tipe populer ── */}
+      {populer.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="text-[12.5px] font-semibold text-muted">Populer:</span>
+          {populer.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setQ(p)}
+              className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition ${
+                q.toLowerCase() === p.toLowerCase()
+                  ? 'border-bss bg-bss text-white'
+                  : 'border-line bg-white text-ink-2 hover:border-muted-2'
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
 
+      {/* ── Hasil ── */}
       {sudahCari && items.length === 0 && !memuat && (
-        <div className="anim-up mt-4 rounded-2xl border border-dashed border-line bg-white p-6 text-center">
-          <p className="text-[15px] font-semibold text-ink">Tipe HP itu belum ada di promo</p>
-          <p className="mt-1 text-sm text-muted">
-            Bukan berarti tidak bisa dikerjakan. Tanya CS untuk harga normalnya — kami menerima
-            hampir semua merek.
+        <div className="anim-up mt-6 rounded-[18px] border border-dashed border-line bg-white p-7 text-center">
+          <p className="display text-[17px] font-bold">Tipe itu belum masuk daftar promo</p>
+          <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-muted">
+            Bukan berarti tidak bisa dikerjakan — kami menerima hampir semua merek. Tanya CS untuk
+            harga normalnya.
           </p>
         </div>
       )}
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {items.map((it, i) => (
-          <article
-            key={it.slug}
-            className="anim-up flex flex-col rounded-[18px] border border-line bg-white p-5 shadow-sm transition hover:border-muted-2/50 hover:shadow-md"
-            style={{ animationDelay: `${Math.min(i, 8) * 25}ms` }}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-2">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {items.map((it, i) => {
+          const potong = diskon(it.priceNormal, it.pricePromo);
+          const menipis = it.stock !== null && it.stock > 0 && it.stock <= 5;
+          return (
+            <article
+              key={it.slug}
+              className="anim-up flex flex-col rounded-[18px] border border-line bg-white p-5 shadow-sm transition hover:border-muted-2/60 hover:shadow-md"
+              style={{ animationDelay: `${Math.min(i, 8) * 25}ms` }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[10.5px] font-extrabold uppercase tracking-[0.13em] text-muted-2">
                   {it.brand}
                 </p>
-                <h3 className="text-[17px] font-extrabold leading-tight text-ink">{it.model}</h3>
+                {potong > 0 && (
+                  <span className="rounded-md bg-bss px-2 py-1 text-[11px] font-extrabold text-white">
+                    -{potong}%
+                  </span>
+                )}
               </div>
-              <Badge>{it.partType}</Badge>
-            </div>
 
-            <p className="mt-1 text-[13px] text-muted">
-              {it.qualityGrade ? `Kualitas ${it.qualityGrade} · ` : ''}Garansi {it.warrantyDays} hari
-            </p>
+              <h3 className="display mt-1 text-[19px] font-bold leading-tight text-ink">
+                {it.model}
+              </h3>
+              <p className="mt-0.5 text-[13px] text-muted">Ganti {it.partType} + pasang</p>
 
-            <div className="mt-4 flex items-end gap-2">
-              <span className="tnum text-[22px] font-extrabold tracking-tight text-bss">
-                {rupiah(it.pricePromo)}
-              </span>
-              {it.priceNormal > it.pricePromo && (
-                <span className="tnum mb-1 text-[13px] text-muted-2 line-through">
-                  {rupiah(it.priceNormal)}
+              <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                {it.priceNormal > it.pricePromo && (
+                  <span className="tnum text-[13.5px] text-muted-2 line-through">
+                    {rupiah(it.priceNormal)}
+                  </span>
+                )}
+                <span className="tnum display text-[23px] font-bold tracking-tight text-bss">
+                  {rupiah(it.pricePromo)}
                 </span>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <span className="rounded-md bg-ok-bg px-2 py-1 text-[11px] font-bold text-ok">
+                  Garansi {it.warrantyDays} hari
+                </span>
+                {it.qualityGrade && (
+                  <span className="rounded-md bg-line-2 px-2 py-1 text-[11px] font-bold text-muted">
+                    {it.qualityGrade}
+                  </span>
+                )}
+              </div>
+
+              {menipis && (
+                <p className="mt-3 text-[12px] font-bold text-bss">
+                  Tinggal {it.stock} unit
+                </p>
               )}
-            </div>
-            {it.priceNormal > it.pricePromo && (
-              <p className="mt-1 text-[12px] font-semibold text-ok">
-                Hemat {rupiah(it.priceNormal - it.pricePromo)}
-              </p>
-            )}
+              {it.note && <p className="mt-2 text-[12px] text-muted">{it.note}</p>}
 
-            {it.note && <p className="mt-3 text-[12px] text-muted">{it.note}</p>}
-
-            <button
-              type="button"
-              disabled={it.habis}
-              onClick={() => setDipilih(it)}
-              className="mt-4 w-full rounded-xl bg-bss py-3 text-[14px] font-bold text-white transition hover:bg-bss-dark disabled:cursor-not-allowed disabled:bg-line disabled:text-muted-2"
-            >
-              {it.habis ? 'Stok kosong' : 'Klaim Promo'}
-            </button>
-          </article>
-        ))}
+              <button
+                type="button"
+                disabled={it.habis}
+                onClick={() => setDipilih(it)}
+                className="mt-auto w-full rounded-xl bg-bss py-3 text-[14.5px] font-bold text-white transition hover:bg-bss-dark disabled:cursor-not-allowed disabled:bg-line disabled:text-muted-2"
+                style={{ marginTop: '18px' }}
+              >
+                {it.habis ? 'Stok kosong' : 'Klaim Promo'}
+              </button>
+            </article>
+          );
+        })}
       </div>
 
       {dipilih && <ClaimModal item={dipilih} onTutup={() => setDipilih(null)} />}

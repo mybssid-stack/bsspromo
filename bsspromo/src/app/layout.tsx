@@ -2,10 +2,11 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Promo Ganti LCD — BSS Service',
+  title: 'Ganti LCD mulai Rp 185.000 — BSS Service',
   description:
     'Ganti LCD HP dengan harga promo. Bayar online, datang ke toko, tunjukkan voucher. Garansi 7 hari.',
   robots: { index: true, follow: true },
+  icons: { icon: '/bss-logo.jpg', apple: '/bss-logo.jpg' },
   openGraph: {
     title: 'Promo Ganti LCD — BSS Service',
     description: 'Bayar online, datang ke toko, tunjukkan voucher. Garansi 7 hari.',
@@ -26,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>

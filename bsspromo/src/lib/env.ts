@@ -108,7 +108,7 @@ export const env = {
     return opt('NEXT_PUBLIC_BASE_URL', 'http://localhost:3000').replace(/\/$/, '');
   },
   get storeName() {
-    return opt('NEXT_PUBLIC_STORE_NAME', 'BSS.id');
+    return opt('NEXT_PUBLIC_STORE_NAME', 'BSS Service');
   },
   get csWhatsapp() {
     return opt('NEXT_PUBLIC_CS_WHATSAPP', '');
