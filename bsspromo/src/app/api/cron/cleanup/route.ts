@@ -7,8 +7,17 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Pemeliharaan harian. Pasang di vercel.json sebagai cron 0 17 * * *
- * (17:00 UTC = 00:00 WIB).
+ * Pemeliharaan harian: buang nonce & cache yang kedaluwarsa, tandai klaim dan
+ * voucher yang lewat waktu.
+ *
+ * Dijadwalkan di vercel.json — `"schedule": "0 17 * * *"` berarti 17:00 UTC,
+ * yaitu 00:00 WIB. Vercel Cron selalu memakai UTC, jadi jamnya sengaja digeser
+ * tujuh jam; jangan diubah jadi "0 0 * * *" kecuali memang mau jalan jam 7 pagi.
+ *
+ * Otentikasinya lewat header Authorization: Vercel mengirim
+ * `Bearer $CRON_SECRET` secara otomatis, jadi tidak ada rahasia yang perlu
+ * ditulis di vercel.json (berkas itu JSON ketat — tidak menerima komentar
+ * maupun properti tambahan seperti `comment`).
  */
 export async function GET(req: Request) {
   const diberikan =
