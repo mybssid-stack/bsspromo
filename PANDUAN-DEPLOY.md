@@ -59,14 +59,58 @@ WHERE email = 'owner@mybss.cloud';
    `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY`, `QR_SIGNING_SECRET`, `VOUCHER_URL_SECRET`,
    `CS_API_SECRET`, `AUTH_SECRET`, `PHONE_HASH_PEPPER`, `NEXT_PUBLIC_BASE_URL`.
 4. **Settings → Functions → Region**: pilih **Singapore (sin1)**.
-5. Deploy. Catat URL hasilnya, misal `https://bsspromo.vercel.app`.
-6. **Balik lagi** dan perbarui dua nilai dengan URL asli tadi:
-   - `NEXT_PUBLIC_BASE_URL` di Vercel
-   - `PROMO_API_BASE` di `standby.php` (lihat bagian C)
-   Lalu redeploy sekali.
+5. Deploy. Vercel memberi URL sementara seperti `bsspromo.vercel.app`.
+6. Pasang domain sendiri — lihat bagian **B2** di bawah.
 
 Upstash dan Turnstile boleh dikosongkan — aplikasi tetap jalan. Pembatas laju
 otomatis turun ke penghitung dalam memori, dan verifikasi anti-bot dilewati.
+
+### B2 · Memasang domain sendiri
+
+Urutannya penting. Domain baru butuh waktu untuk menyebar, dan mengubah
+Midtrans terlalu cepat bisa membuat pembayaran nyangkut.
+
+1. **Vercel → Project → Settings → Domains → Add**, masukkan `promolcd.site`.
+   Tambahkan juga `www.promolcd.site` kalau mau keduanya jalan.
+2. Vercel akan menampilkan catatan DNS yang harus dipasang. Ada dua jalan;
+   pilih salah satu, jangan dua-duanya:
+
+   **Jalan A — serahkan DNS ke Vercel (paling sedikit langkahnya).**
+   Di Hostinger → Domains → DNS / Nameservers, ganti nameserver jadi:
+   ```
+   ns1.vercel-dns.com
+   ns2.vercel-dns.com
+   ```
+   Setelah ini seluruh DNS domain diurus Vercel. Kalau kelak mau memakai
+   email di domain yang sama, catatan MX-nya harus dibuat ulang di Vercel.
+
+   **Jalan B — DNS tetap di Hostinger.**
+   Di Hostinger → DNS Zone, tambahkan:
+   ```
+   Tipe    Nama    Nilai
+   A       @       76.76.21.21
+   CNAME   www     cname.vercel-dns.com
+   ```
+   Hapus dulu catatan A/CNAME lama untuk `@` dan `www` kalau ada, supaya
+   tidak bentrok dengan halaman parkir bawaan Hostinger.
+
+3. **Tunggu sampai benar-benar terbuka.** Cek dengan:
+   ```bash
+   dig +short promolcd.site
+   ```
+   Kalau masih kosong, DNS-nya belum menyebar. Biasanya 10–60 menit, kadang
+   sampai beberapa jam. Jangan lanjut sebelum `https://promolcd.site` membuka
+   halaman promo di browser.
+
+4. Setelah domainnya terbuka, baru ubah tiga tempat ini:
+   - **Vercel** → Environment Variables → `NEXT_PUBLIC_BASE_URL` =
+     `https://promolcd.site`, lalu **redeploy**. Tanpa redeploy, nilai lama
+     masih dipakai deployment yang sedang jalan.
+   - **Midtrans** → Payment Notification URL (lihat bagian D).
+   - **cPanel** → `PROMO_API_BASE` di `standby.php`.
+
+Alamat `bsspromo.vercel.app` tetap hidup berdampingan dengan domain baru, jadi
+tautan voucher yang sudah terlanjur dibagikan tidak akan mati.
 
 ---
 
@@ -110,7 +154,7 @@ ubah juga di Vercel.
 #### 2. `standby.php` — SATU BARIS
 
 ```php
-if (!defined('PROMO_API_BASE')) define('PROMO_API_BASE', 'https://bsspromo.vercel.app');
+if (!defined('PROMO_API_BASE')) define('PROMO_API_BASE', 'https://promolcd.site');
 //                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //                                       ganti dengan URL Vercel kamu yang sebenarnya
 ```
@@ -168,8 +212,13 @@ muncul sebagai menu, tambahkan satu baris di `pages/home.php`. Tidak wajib.
    **Production**.
 2. **Settings → Configuration → Payment Notification URL**:
    ```
-   https://bsspromo.vercel.app/api/webhooks/midtrans
+   https://promolcd.site/api/webhooks/midtrans
    ```
+
+   Ganti alamat ini **hanya setelah** domainnya benar-benar terbuka di
+   browser. Kalau diarahkan ke domain yang DNS-nya belum jadi, notifikasi
+   pembayaran akan nyangkut: uangnya masuk, tapi vouchernya tidak pernah
+   terbit.
 3. **Finish / Unfinish / Error Redirect URL**: kosongkan saja. Aplikasi
    mengarahkan sendiri lewat Snap callback.
 4. **Settings → Snap Preferences**: aktifkan metode yang kamu mau (QRIS,
