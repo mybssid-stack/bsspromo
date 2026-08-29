@@ -68,6 +68,10 @@ export default function ClaimModal({ item, onTutup }: { item: ItemPromo; onTutup
   const [claimNo, setClaimNo] = useState('');
   const [claimTok, setClaimTok] = useState('');
   const [statusBayar, setStatusBayar] = useState('Menunggu pembayaran…');
+  // Dinaikkan oleh callback Snap. Callback itu tidak dipercaya untuk
+  // MENENTUKAN status — hanya sebagai tanda "sekarang saatnya bertanya",
+  // supaya tidak perlu menunggu giliran polling berikutnya.
+  const [pemicuCek, setPemicuCek] = useState(0);
 
   const [cek, setCek] = useState<'kosong' | 'menunggu' | 'jalan' | 'selesai'>('kosong');
   // Menandai apakah isi kolom nama berasal dari database, bukan diketik
@@ -217,8 +221,14 @@ export default function ClaimModal({ item, onTutup }: { item: ItemPromo; onTutup
       try {
         await muatSnap();
         window.snap!.pay(d.snapToken, {
-          onSuccess: () => setStatusBayar('Pembayaran diterima. Menyiapkan voucher…'),
-          onPending: () => setStatusBayar('Menunggu pembayaran selesai…'),
+          onSuccess: () => {
+            setStatusBayar('Pembayaran diterima. Menyiapkan voucher…');
+            setPemicuCek((n) => n + 1);
+          },
+          onPending: () => {
+            setStatusBayar('Menunggu pembayaran selesai…');
+            setPemicuCek((n) => n + 1);
+          },
           onError: () => setStatusBayar('Pembayaran gagal. Coba metode lain.'),
           onClose: () => setStatusBayar('Jendela pembayaran ditutup. Belum ada pembayaran masuk.'),
         });
@@ -240,7 +250,24 @@ export default function ClaimModal({ item, onTutup }: { item: ItemPromo; onTutup
   useEffect(() => {
     if (tahap !== 'menunggu' || !claimNo || !claimTok) return;
     let hidup = true;
-    let jeda = 2500;
+    const mulai = Date.now();
+
+    /**
+     * Jeda antar pengecekan.
+     *
+     * Sebelumnya jeda ini melar 1,25x tiap putaran sampai 15 detik. Di atas
+     * kertas hemat, di depan pelanggan terasa macet: QRIS butuh sekitar
+     * semenit sampai settlement, dan saat itu jedanya sudah terlanjur 15
+     * detik — jadi setelah uang benar-benar masuk, layar masih diam belasan
+     * detik lagi. Itulah yang terasa "tidak realtime".
+     *
+     * Sekarang rapat 2 detik selama 5 menit pertama (rentang waktu orang
+     * benar-benar menunggu di depan layar), baru melambat jadi 10 detik untuk
+     * tab yang ditinggal terbuka.
+     */
+    const jedaBerikut = () => (Date.now() - mulai < 5 * 60 * 1000 ? 2000 : 10000);
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
     const cek = async () => {
       if (!hidup) return;
@@ -265,18 +292,18 @@ export default function ClaimModal({ item, onTutup }: { item: ItemPromo; onTutup
       } catch {
         /* diamkan, coba lagi */
       }
-      // Melambat pelan-pelan supaya tidak membanjiri server kalau pelanggan
-      // meninggalkan tab terbuka setengah jam.
-      jeda = Math.min(jeda * 1.25, 15000);
-      if (hidup) setTimeout(cek, jeda);
+      if (hidup) timer = setTimeout(cek, jedaBerikut());
     };
 
-    const t = setTimeout(cek, jeda);
+    // Langsung sekali di awal — juga saat pemicuCek naik karena Snap
+    // memberi tahu pembayaran sudah masuk.
+    void cek();
+
     return () => {
       hidup = false;
-      clearTimeout(t);
+      if (timer) clearTimeout(timer);
     };
-  }, [tahap, claimNo, claimTok]);
+  }, [tahap, claimNo, claimTok, pemicuCek]);
 
   const langkah = tahap === 'nomor' ? 1 : tahap === 'data' ? 2 : tahap === 'konfirmasi' ? 3 : 4;
 

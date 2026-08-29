@@ -31,7 +31,9 @@ export default function StatusKlaim({ claimNo, token }: { claimNo: string; token
 
   useEffect(() => {
     let hidup = true;
-    let jeda = 3000;
+    const mulai = Date.now();
+    // Alasan sama dengan di ClaimModal: rapat selama orang masih menunggu.
+    const jedaBerikut = () => (Date.now() - mulai < 5 * 60 * 1000 ? 2000 : 10000);
 
     const cek = async () => {
       if (!hidup) return;
@@ -55,8 +57,7 @@ export default function StatusKlaim({ claimNo, token }: { claimNo: string; token
       } catch {
         /* coba lagi */
       }
-      jeda = Math.min(jeda * 1.2, 15000);
-      if (hidup) setTimeout(cek, jeda);
+      if (hidup) setTimeout(cek, jedaBerikut());
     };
 
     void cek();
