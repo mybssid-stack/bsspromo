@@ -199,18 +199,6 @@ export default function SearchPromo({
                 style={{ marginTop: '18px' }}
               >
                 <span className="tiket-kilau" aria-hidden />
-                <svg
-                  className="tiket-ikon"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  aria-hidden
-                >
-                  <path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8Z" />
-                </svg>
                 <span className="tiket-perforasi" aria-hidden />
                 {it.habis ? 'Stok kosong' : 'Klaim Promo'}
               </button>

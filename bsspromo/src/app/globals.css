@@ -266,7 +266,7 @@ input[type='number'] {
   justify-content: center;
   gap: 10px;
   width: 100%;
-  padding: 14px 18px 14px 42px;
+  padding: 14px 18px 14px 34px;
   border: 0;
   border-radius: 10px;
   background: linear-gradient(135deg, #ee2a31 0%, var(--color-bss) 45%, var(--color-bss-dark) 100%);
@@ -310,19 +310,10 @@ input[type='number'] {
 /* Garis perforasi + bonggol kiri. */
 .tiket-perforasi {
   position: absolute;
-  left: 30px;
+  left: 22px;
   top: 9px;
   bottom: 9px;
   border-left: 2px dashed rgba(255, 255, 255, 0.5);
-  z-index: 2;
-}
-
-.tiket-ikon {
-  position: absolute;
-  left: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0.9;
   z-index: 2;
 }
 
