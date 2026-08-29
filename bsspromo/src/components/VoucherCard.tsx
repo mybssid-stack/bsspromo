@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Spinner } from './ui';
+import { namaUnit } from '@/lib/money';
 
 export type DataVoucher = {
   code: string;
@@ -105,7 +106,7 @@ export default function VoucherCard({ d }: { d: DataVoucher }) {
         <div className="px-6 py-5">
           <Baris k="Nama" v={d.nama} />
           <Baris k="Nomor HP" v={d.phoneDisplay} />
-          <Baris k="Unit" v={`${d.brand} ${d.model}`} kuat />
+          <Baris k="Unit" v={namaUnit(d.brand, d.model)} kuat />
           <Baris
             k="Pekerjaan"
             v={`Ganti ${d.partType}${d.qualityGrade ? ` · ${d.qualityGrade}` : ''}`}

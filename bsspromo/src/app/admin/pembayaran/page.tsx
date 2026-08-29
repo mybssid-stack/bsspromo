@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { namaMetode, rupiah, tanggalID } from '@/lib/money';
+import { namaMetode, rupiah, tanggalID, namaUnit } from '@/lib/money';
 
 import { wajibAdminHalaman } from '@/lib/admin-guard';
 
@@ -125,7 +125,7 @@ export default async function HalamanPembayaran({
                     )}
                   </td>
                   <td className="px-5 py-3">
-                    {r.brand} {r.model}
+                    {namaUnit(r.brand, r.model)}
                     {r.quality_grade && (
                       <span className="block text-[11.5px] text-muted">{r.quality_grade}</span>
                     )}

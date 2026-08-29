@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Spinner } from '../ui';
+import { namaUnit } from '@/lib/money';
 
 type Item = {
   id: string;
@@ -118,7 +119,7 @@ export default function TabelHarga() {
   }
 
   async function hapus(it: Item) {
-    if (!confirm(`Hapus ${it.brand} ${it.model} dari daftar promo?`)) return;
+    if (!confirm(`Hapus ${namaUnit(it.brand, it.model)} dari daftar promo?`)) return;
     const res = await fetch(`/api/admin/promo/${it.id}`, { method: 'DELETE' });
     const d = (await res.json()) as { ok: boolean; message?: string; deleted?: boolean };
     if (!d.ok) setGalat(d.message ?? 'Gagal menghapus.');
@@ -218,7 +219,7 @@ export default function TabelHarga() {
                   <tr key={it.id} className="border-b border-line-2 last:border-0">
                     <td className="px-5 py-3">
                       <span className="font-bold">
-                        {it.brand} {it.model}
+                        {namaUnit(it.brand, it.model)}
                       </span>
                       <span className="block text-[12px] text-muted">
                         {it.partType}

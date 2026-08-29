@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { claims, vouchers } from '@/db/schema';
 import { jsonErr, jsonOk } from '@/lib/api';
 import { batasiLaju, ipDari } from '@/lib/ratelimit';
+import { namaUnit } from '@/lib/money';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -45,7 +46,7 @@ export async function GET(req: Request) {
     found: true,
     code: row.v.code,
     status,
-    device: `${row.c.brand} ${row.c.model}`,
+    device: namaUnit(row.c.brand, row.c.model),
     validUntil: row.v.validUntil.toISOString(),
     redeemedAt: row.v.redeemedAt?.toISOString() ?? null,
     warrantyEndAt: row.v.warrantyEndAt?.toISOString() ?? null,

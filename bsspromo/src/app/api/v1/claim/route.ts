@@ -11,6 +11,7 @@ import { normalizePhoneID } from '@/lib/phone';
 import { claimToken, hashPhone } from '@/lib/qr-jws';
 import { batasiLaju, ipDari } from '@/lib/ratelimit';
 import { ambilPengaturan, promoSedangJalan } from '@/lib/settings';
+import { namaUnit } from '@/lib/money';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
     const item = itemRows[0];
     if (!item) return jsonErr('ITEM_TIDAK_ADA', 'Tipe HP ini sudah tidak ikut promo.', 404);
     if (item.stock !== null && item.stock <= 0) {
-      return jsonErr('STOK_HABIS', `Stok LCD ${item.brand} ${item.model} sedang kosong.`, 409);
+      return jsonErr('STOK_HABIS', `Stok ${item.partType} ${namaUnit(item.brand, item.model)} sedang kosong.`, 409);
     }
 
     // ── 2. Identitas: pelanggan lama menang atas isian manual ──────────────
@@ -189,7 +190,7 @@ export async function POST(req: Request) {
       .returning();
 
     // ── 6. Snap ────────────────────────────────────────────────────────────
-    const namaItem = `Ganti ${claim.partType} ${claim.brand} ${claim.model}`;
+    const namaItem = `Ganti ${claim.partType} ${namaUnit(claim.brand, claim.model)}`;
     const snap = await buatTransaksiSnap({
       orderId,
       grossAmount: claim.amountIdr,
@@ -228,7 +229,7 @@ export async function POST(req: Request) {
       redirectUrl: snap.redirect_url,
       amount: claim.amountIdr,
       warrantyDays: claim.warrantyDays,
-      device: `${claim.brand} ${claim.model}`,
+      device: namaUnit(claim.brand, claim.model),
       customerName: claim.nameSnapshot,
       nameSource: sumberNama,
       expiresAt: claim.expiresAt.toISOString(),

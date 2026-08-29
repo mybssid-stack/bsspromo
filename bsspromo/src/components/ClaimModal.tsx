@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ItemPromo } from './SearchPromo';
 import { Alert, Badge, Spinner } from './ui';
+import { namaUnit } from '@/lib/money';
 
 declare global {
   interface Window {
@@ -259,7 +260,7 @@ export default function ClaimModal({ item, onTutup }: { item: ItemPromo; onTutup
               Langkah {langkah} dari 4
             </p>
             <h2 className="text-[17px] font-extrabold leading-tight">
-              {item.brand} {item.model}
+              {namaUnit(item.brand, item.model)}
             </h2>
           </div>
           <button
@@ -385,7 +386,7 @@ export default function ClaimModal({ item, onTutup }: { item: ItemPromo; onTutup
                 <Baris k="Nama" v={nama} />
                 <Baris k="Nomor HP" v={phone} />
                 {alamat && <Baris k="Alamat" v={alamat} />}
-                <Baris k="Unit" v={`${item.brand} ${item.model}`} />
+                <Baris k="Unit" v={namaUnit(item.brand, item.model)} />
                 <Baris
                   k="Pekerjaan"
                   v={`Ganti ${item.partType}${item.qualityGrade ? ` · ${item.qualityGrade}` : ''}`}

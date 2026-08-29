@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { rupiah, tanggalID } from '@/lib/money';
+import { rupiah, tanggalID, namaUnit } from '@/lib/money';
 
 import { wajibAdminHalaman } from '@/lib/admin-guard';
 
@@ -126,7 +126,7 @@ export default async function Dasbor() {
                       <span className="block text-[12px] text-muted">{r.phone_display}</span>
                     </td>
                     <td className="px-5 py-3">
-                      {r.brand} {r.model}
+                      {namaUnit(r.brand, r.model)}
                     </td>
                     <td className="tnum px-5 py-3 text-right font-bold">{rupiah(r.amount_idr)}</td>
                     <td className="px-5 py-3">

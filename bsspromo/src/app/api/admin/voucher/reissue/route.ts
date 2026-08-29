@@ -9,6 +9,7 @@ import { catat } from '@/lib/audit';
 import { formatPhoneLocal, normalizePhoneID } from '@/lib/phone';
 import { voucherToken, voucherUrl } from '@/lib/qr-jws';
 import { ipDari } from '@/lib/ratelimit';
+import { namaUnit } from '@/lib/money';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -97,7 +98,7 @@ export async function POST(req: Request) {
     url: voucherUrl(code),
     customerName: row.c.nameSnapshot,
     phoneDisplay: formatPhoneLocal(row.c.phoneSnapshot),
-    device: `${row.c.brand} ${row.c.model}`,
+    device: namaUnit(row.c.brand, row.c.model),
     voucherStatus: row.v.status,
     validUntil: row.v.validUntil.toISOString(),
   });

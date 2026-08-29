@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { claims, payments, vouchers } from '@/db/schema';
 import { jsonErr, jsonOk } from '@/lib/api';
 import { cekClaimToken, voucherToken } from '@/lib/qr-jws';
+import { namaUnit } from '@/lib/money';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -40,7 +41,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ claimNo: string
     claimNo: claim.claimNo,
     status: claim.status,
     amount: claim.amountIdr,
-    device: `${claim.brand} ${claim.model}`,
+    device: namaUnit(claim.brand, claim.model),
     customerName: claim.nameSnapshot,
     paidAt: claim.paidAt?.toISOString() ?? null,
     expiresAt: claim.expiresAt.toISOString(),
