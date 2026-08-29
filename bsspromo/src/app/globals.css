@@ -100,3 +100,149 @@ input[type='number']::-webkit-inner-spin-button {
 input[type='number'] {
   -moz-appearance: textfield;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   PAPAN BALIK (split-flap) untuk hitung mundur.
+
+   Cara kerjanya meniru papan jadwal stasiun: satu kartu dibelah dua. Separuh
+   atas dan separuh bawah masing-masing memuat SATU angka utuh, tapi terpotong
+   oleh overflow — jadi mata membaca satu angka, padahal itu dua potongan.
+
+   Saat angkanya berganti, dua daun beranimasi di atas potongan statis itu:
+   daun atas (angka LAMA) jatuh ke bawah dan menyingkir, daun bawah (angka
+   BARU) menyusul naik ke posisi. Urutan waktunya berurutan, bukan bersamaan
+   — itu yang membuat geraknya terasa seperti benda fisik, bukan sekadar
+   pudar-berganti.
+   ────────────────────────────────────────────────────────────────────────── */
+.flip {
+  position: relative;
+  perspective: 260px;
+  /* Ukurannya SENGAJA tidak diatur di sini. Aturan .flip berada setelah
+     utilitas Tailwind di berkas ini, jadi width/height apa pun di sini akan
+     menimpa kelas h-[62px] w-[58px] pada elemennya. Sebelumnya begitu, dan
+     karena induknya tidak punya tinggi eksplisit, height:100% ikut kolaps —
+     kartunya jadi setinggi 1px dan animasi baliknya tidak terlihat sama
+     sekali walaupun tetap berjalan. */
+}
+
+.flip-sisi {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  background: var(--color-ink);
+  backface-visibility: hidden;
+}
+
+.flip-merah .flip-sisi {
+  background: var(--color-bss);
+}
+
+.flip-atas {
+  top: 0;
+  border-radius: 12px 12px 0 0;
+  /* Garis engsel: sedikit lebih gelap dari badan kartu. */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.28);
+}
+
+.flip-bawah {
+  bottom: 0;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Angka utuh setinggi kartu penuh, lalu dipotong oleh separuh di atasnya. */
+.flip-sisi > b {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  line-height: 1;
+}
+
+.flip-atas > b {
+  top: 0;
+}
+.flip-bawah > b {
+  bottom: 0;
+}
+
+/* Dua daun yang bergerak. Keduanya hanya ada selama animasi berlangsung. */
+.flip-daun-atas {
+  z-index: 3;
+  transform-origin: bottom;
+  animation: flip-jatuh 0.28s cubic-bezier(0.4, 0, 0.9, 0.6) forwards;
+}
+
+.flip-daun-bawah {
+  z-index: 2;
+  transform-origin: top;
+  transform: rotateX(90deg);
+  animation: flip-mendarat 0.3s 0.28s cubic-bezier(0.2, 0.7, 0.4, 1.05) forwards;
+}
+
+@keyframes flip-jatuh {
+  to {
+    transform: rotateX(-90deg);
+  }
+}
+
+@keyframes flip-mendarat {
+  to {
+    transform: rotateX(0deg);
+  }
+}
+
+/* Bayangan tipis yang menyapu saat daun jatuh — memberi kesan tebal. */
+.flip-daun-atas::after,
+.flip-daun-bawah::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+}
+.flip-daun-atas::after {
+  animation: flip-bayang-masuk 0.28s ease-in forwards;
+}
+.flip-daun-bawah::after {
+  animation: flip-bayang-keluar 0.3s 0.28s ease-out forwards;
+}
+
+@keyframes flip-bayang-masuk {
+  to {
+    opacity: 0.45;
+  }
+}
+@keyframes flip-bayang-keluar {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Orang yang mematikan animasi di sistemnya tetap harus bisa membaca angkanya
+   — jadi daunnya tidak dianimasikan, langsung mendarat di posisi akhir. */
+@media (prefers-reduced-motion: reduce) {
+  .flip-daun-atas,
+  .flip-daun-bawah,
+  .flip-daun-atas::after,
+  .flip-daun-bawah::after {
+    animation: none;
+  }
+  .flip-daun-atas {
+    display: none;
+  }
+  .flip-daun-bawah {
+    transform: none;
+  }
+}

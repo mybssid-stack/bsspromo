@@ -10,6 +10,11 @@ import { useEffect, useState } from 'react';
  * dan urutannya identik, jadi tidak mungkin ada bagian yang cuma bisa diakses
  * dari salah satu ukuran layar — itu penyebab tampilan mobile dan desktop
  * terasa seperti dua produk berbeda.
+ *
+ * TIDAK ADA tautan Admin di sini, disengaja. Halaman ini dilihat pelanggan,
+ * dan tombol itu tidak ada gunanya bagi mereka. Console tetap terbuka lewat
+ * /admin yang diketik langsung, dan tetap dijaga middleware serta pemeriksaan
+ * sesi di tiap halamannya.
  */
 const MENU = [
   { id: 'bagian-harga', label: 'Harga Promo', pendek: 'Promo', ikon: IkonTag },
@@ -79,13 +84,6 @@ export default function NavShell({ waCs, namaToko }: { waCs: string; namaToko: s
               </button>
             ))}
           </nav>
-
-          <a
-            href="/admin"
-            className="ml-auto shrink-0 rounded-lg border border-line px-3.5 py-2 text-[13px] font-bold transition hover:bg-line-2 md:ml-2"
-          >
-            Admin
-          </a>
         </div>
       </header>
 
