@@ -46,6 +46,24 @@ export const env = {
       ? 'https://api.midtrans.com'
       : 'https://api.sandbox.midtrans.com';
   },
+  /**
+   * Alamat webhook khusus untuk transaksi aplikasi ini.
+   *
+   * Akun Midtrans BSS dipakai bersama proyek lain (tuser.id), dan kolom
+   * "Payment Notification URL" di dashboard cuma satu. Mengubahnya akan
+   * mematikan notifikasi proyek satunya. Jadi alamat ini dikirim per
+   * transaksi lewat header X-Override-Notification, sehingga setelan
+   * dashboard tidak perlu disentuh sama sekali.
+   *
+   * Kosongkan MIDTRANS_NOTIFICATION_URL kalau akun Midtrans-nya kelak
+   * dipakai aplikasi ini saja — header berhenti dikirim dan Midtrans
+   * kembali memakai setelan dashboard.
+   */
+  get midtransNotificationUrl() {
+    const eksplisit = opt('MIDTRANS_NOTIFICATION_URL');
+    if (eksplisit) return eksplisit;
+    return `${this.baseUrl}/api/webhooks/midtrans`;
+  },
 
   // ── QR & voucher ───────────────────────────────────────────────────────
   get qrKeyId() {

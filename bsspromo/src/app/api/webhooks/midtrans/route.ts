@@ -1,10 +1,9 @@
 import crypto from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { claims, paymentEvents, payments, promoItems } from '@/db/schema';
-import { catat } from '@/lib/audit';
-import { cekSignatureWebhook, keputusanPembayaran } from '@/lib/midtrans';
-import { terbitkanVoucher } from '@/lib/voucher';
+import { paymentEvents, payments } from '@/db/schema';
+import { cekSignatureWebhook } from '@/lib/midtrans';
+import { terapkanStatusPembayaran } from '@/lib/settle';
 
 // Wajib nodejs: butuh raw body & crypto.
 export const runtime = 'nodejs';
@@ -118,61 +117,7 @@ export async function POST(req: Request) {
       return Response.json({ ok: false, code: 'AMOUNT_MISMATCH' }, { status: 409 });
     }
 
-    const va = n.va_numbers?.[0];
-    await db
-      .update(payments)
-      .set({
-        paymentType: n.payment_type ?? null,
-        bank: va?.bank ?? n.bank ?? null,
-        vaNumber: va?.va_number ?? n.permata_va_number ?? null,
-        store: n.store ?? null,
-        transactionId: n.transaction_id ?? null,
-        transactionStatus: n.transaction_status ?? null,
-        fraudStatus: n.fraud_status ?? null,
-        statusCode: n.status_code ?? null,
-        settlementAt: n.settlement_time ? new Date(n.settlement_time.replace(' ', 'T') + '+07:00') : null,
-        rawResponse: n as never,
-        updatedAt: new Date(),
-      })
-      .where(eq(payments.id, bayar.id));
-
-    const keputusan = keputusanPembayaran(n);
-
-    if (keputusan === 'PAID') {
-      const claimRows = await db.select().from(claims).where(eq(claims.id, bayar.claimId)).limit(1);
-      const claim = claimRows[0];
-
-      if (claim && claim.status !== 'PAID') {
-        await db
-          .update(claims)
-          .set({ status: 'PAID', paidAt: new Date(), updatedAt: new Date() })
-          .where(eq(claims.id, claim.id));
-
-        // Stok berkurang hanya untuk item yang memang dibatasi stoknya.
-        await db
-          .update(promoItems)
-          .set({ stock: sql`GREATEST(${promoItems.stock} - 1, 0)` })
-          .where(eq(promoItems.id, claim.promoItemId));
-
-        await catat({
-          actorType: 'SYSTEM',
-          action: 'payment.settle',
-          entity: 'claims',
-          entityId: claim.id,
-          after: { orderId: n.order_id, amount: nominal, type: n.payment_type },
-        });
-      }
-
-      // Idempoten: aman dipanggil berkali-kali untuk klaim yang sama.
-      await terbitkanVoucher(bayar.claimId);
-    } else if (keputusan === 'FAILED') {
-      // Klaim yang SUDAH lunas tidak boleh diturunkan statusnya oleh
-      // notifikasi percobaan bayar lain yang kebetulan gagal/kedaluwarsa.
-      await db
-        .update(claims)
-        .set({ status: 'FAILED', updatedAt: new Date() })
-        .where(sql`${claims.id} = ${bayar.claimId} AND ${claims.status} <> 'PAID'`);
-    }
+    const keputusan = await terapkanStatusPembayaran(bayar, n, 'webhook');
 
     await db
       .update(paymentEvents)

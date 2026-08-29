@@ -59,13 +59,30 @@ export async function buatTransaksiSnap(p: ParamSnap): Promise<HasilSnap> {
     callbacks: p.finishUrl ? { finish: p.finishUrl } : undefined,
   };
 
+  /**
+   * X-Override-Notification mengalihkan webhook HANYA untuk transaksi ini,
+   * mengabaikan "Payment Notification URL" di dashboard.
+   *
+   * Dipakai karena akun Midtrans BSS berbagi dengan proyek lain yang sudah
+   * memakai kolom dashboard itu. Dengan override, notifikasi promo hanya
+   * dikirim ke aplikasi ini, dan proyek satunya tidak menerima kiriman yang
+   * tidak dikenalinya — yang kalau dibiarkan akan dijawab galat dan membuat
+   * Midtrans mengulang-ulang tanpa guna.
+   *
+   * Dipilih override, bukan append, justru karena alasan itu.
+   * Midtrans menerima maksimal tiga alamat, dipisah koma tanpa spasi.
+   */
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    Authorization: basicAuth(),
+  };
+  const notifUrl = env.midtransNotificationUrl;
+  if (notifUrl) headers['X-Override-Notification'] = notifUrl;
+
   const res = await fetch(`${env.midtransSnapBase}/transactions`, {
     method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      Authorization: basicAuth(),
-    },
+    headers,
     body: JSON.stringify(payload),
     cache: 'no-store',
   });
