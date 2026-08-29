@@ -22,6 +22,33 @@ export type HasilLookup = {
   sumber: 'bridge' | 'cache' | 'kosong';
 };
 
+/**
+ * Apakah nama dari database lama layak dipakai sebagai nama pelanggan?
+ *
+ * Data lama BSS berisi baris seperti id 1622: nama "085655748212", alamat
+ * kosong — seseorang didaftarkan dengan nomor HP-nya sebagai nama. Kalau
+ * ditelan mentah, pelanggan melihat kotak hijau "TERDAFTAR DI DATABASE BSS"
+ * berisi nomor HP-nya sendiri sebagai nama, terkunci, tanpa cara
+ * membetulkan — dan nama itu ikut tercetak di voucher dan nota servis.
+ *
+ * Jadi nama yang jelas-jelas bukan nama diperlakukan seperti tidak ketemu:
+ * pelanggan diminta mengetik namanya sendiri sekali, dan mulai saat itu
+ * datanya benar.
+ */
+function namaLayak(nama: string | undefined): boolean {
+  const n = (nama ?? '').trim();
+  if (n.length < 2) return false;
+
+  // Tujuh digit atau lebih hampir pasti nomor telepon, bukan nama orang.
+  const jumlahAngka = (n.match(/\d/g) ?? []).length;
+  if (jumlahAngka >= 7) return false;
+
+  // Harus memuat setidaknya dua huruf berurutan.
+  if (!/[A-Za-z]{2}/.test(n)) return false;
+
+  return true;
+}
+
 const TTL_KETEMU_MS = 24 * 60 * 60 * 1000; // 24 jam
 const TTL_KOSONG_MS = 10 * 60 * 1000;      // 10 menit
 
@@ -116,7 +143,7 @@ export async function lookupPelangganLama(phoneE164: string): Promise<HasilLooku
     };
 
     const hasil: HasilLookup =
-      data?.found && data.customer?.name
+      data?.found && data.customer && namaLayak(data.customer.name)
         ? {
             found: true,
             name: String(data.customer.name).slice(0, 150),

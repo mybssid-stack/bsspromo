@@ -89,14 +89,16 @@ export default async function Beranda() {
         {/* ══ Hero ══ */}
         <section className="border-b border-line bg-gradient-to-b from-bss-tint/60 to-white">
           <div className="mx-auto max-w-6xl px-4 pb-10 pt-9 sm:px-6 sm:pb-14 sm:pt-14">
-            <div className="inline-flex items-center gap-2 rounded-full bg-bss-tint px-3.5 py-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-bss" />
-              <span className="text-[10.5px] font-extrabold uppercase tracking-[0.14em] text-bss">
-                {aktif ? 'Promo Ganti LCD' : 'Promo sedang tutup'}
-              </span>
-            </div>
+            {!aktif && (
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-bss-tint px-3.5 py-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-bss" />
+                <span className="text-[10.5px] font-extrabold uppercase tracking-[0.14em] text-bss">
+                  Promo sedang tutup
+                </span>
+              </div>
+            )}
 
-            <h1 className="display mt-4 max-w-3xl text-[clamp(28px,6vw,54px)] font-bold leading-[1.08]">
+            <h1 className="display max-w-3xl text-[clamp(28px,6vw,54px)] font-bold leading-[1.08]">
               {String(p['promo.title'])}
             </h1>
             <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-muted sm:text-[17px]">
@@ -108,19 +110,6 @@ export default async function Beranda() {
                 <Countdown sampai={akhir} />
               </div>
             )}
-
-            <div className="mt-7 flex flex-wrap gap-2">
-              {['Garansi 7 hari', 'Bayar aman via Midtrans', 'Voucher digital instan', 'Dikerjakan 45 menit'].map(
-                (t) => (
-                  <span
-                    key={t}
-                    className="rounded-full border border-line bg-white px-4 py-2 text-[13px] font-semibold text-ink-2"
-                  >
-                    {t}
-                  </span>
-                ),
-              )}
-            </div>
           </div>
         </section>
 

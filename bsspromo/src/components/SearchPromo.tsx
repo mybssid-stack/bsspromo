@@ -138,7 +138,6 @@ export default function SearchPromo({
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {items.map((it, i) => {
           const potong = diskon(it.priceNormal, it.pricePromo);
-          const menipis = it.stock !== null && it.stock > 0 && it.stock <= 5;
           return (
             <article
               key={it.slug}
@@ -176,27 +175,43 @@ export default function SearchPromo({
                 <span className="rounded-md bg-ok-bg px-2 py-1 text-[11px] font-bold text-ok">
                   Garansi {it.warrantyDays} hari
                 </span>
-                {it.qualityGrade && (
-                  <span className="rounded-md bg-line-2 px-2 py-1 text-[11px] font-bold text-muted">
-                    {it.qualityGrade}
-                  </span>
-                )}
+                {/* Jumlah stok sengaja tidak ditampilkan. Angka pasti seperti
+                    "tinggal 2 unit" menjanjikan ketepatan yang tidak bisa
+                    dipegang: stok di sini hanya berkurang saat ada yang bayar
+                    online, sementara unit yang sama juga terpakai pelanggan
+                    yang datang langsung ke toko. Cukup tersedia atau habis. */}
+                <span
+                  className={`rounded-md px-2 py-1 text-[11px] font-bold ${
+                    it.habis ? 'bg-line-2 text-muted-2' : 'bg-line-2 text-muted'
+                  }`}
+                >
+                  {it.habis ? 'Habis' : 'Tersedia'}
+                </span>
               </div>
 
-              {menipis && (
-                <p className="mt-3 text-[12px] font-bold text-bss">
-                  Tinggal {it.stock} unit
-                </p>
-              )}
               {it.note && <p className="mt-2 text-[12px] text-muted">{it.note}</p>}
 
               <button
                 type="button"
                 disabled={it.habis}
                 onClick={() => setDipilih(it)}
-                className="mt-auto w-full rounded-xl bg-bss py-3 text-[14.5px] font-bold text-white transition hover:bg-bss-dark disabled:cursor-not-allowed disabled:bg-line disabled:text-muted-2"
+                className="tiket"
                 style={{ marginTop: '18px' }}
               >
+                <span className="tiket-kilau" aria-hidden />
+                <svg
+                  className="tiket-ikon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden
+                >
+                  <path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8Z" />
+                </svg>
+                <span className="tiket-perforasi" aria-hidden />
                 {it.habis ? 'Stok kosong' : 'Klaim Promo'}
               </button>
             </article>

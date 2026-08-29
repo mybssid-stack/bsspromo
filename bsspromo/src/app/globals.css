@@ -246,3 +246,134 @@ input[type='number'] {
     transform: none;
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   TOMBOL TIKET
+
+   Bentuknya meniru tiket sobek: dua takik setengah lingkaran di sisi kiri dan
+   kanan, plus garis perforasi putus-putus yang memisahkan bonggol kecil di
+   kiri. Takiknya dibuat dari lingkaran berwarna SAMA dengan latar kartu, jadi
+   terbaca sebagai lubang, bukan tempelan.
+
+   Karena warnanya menyamar sebagai latar, tombol ini hanya benar di atas
+   kartu putih. Kalau kelak dipakai di atas latar lain, ganti --tiket-latar.
+   ────────────────────────────────────────────────────────────────────────── */
+.tiket {
+  --tiket-latar: #ffffff;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 18px 14px 42px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ee2a31 0%, var(--color-bss) 45%, var(--color-bss-dark) 100%);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow:
+    0 1px 2px rgba(176, 21, 27, 0.28),
+    0 6px 16px -6px rgba(176, 21, 27, 0.55);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+
+/* Takik kiri & kanan. */
+.tiket::before,
+.tiket::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--tiket-latar);
+  transform: translateY(-50%);
+  z-index: 2;
+}
+.tiket::before {
+  left: -9px;
+}
+.tiket::after {
+  right: -9px;
+}
+
+/* Garis perforasi + bonggol kiri. */
+.tiket-perforasi {
+  position: absolute;
+  left: 30px;
+  top: 9px;
+  bottom: 9px;
+  border-left: 2px dashed rgba(255, 255, 255, 0.5);
+  z-index: 2;
+}
+
+.tiket-ikon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.9;
+  z-index: 2;
+}
+
+/* Kilau tipis yang menyapu saat disentuh. Murni hiasan, jadi tidak boleh
+   menghalangi klik. */
+.tiket-kilau {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  transition: transform 0.55s ease;
+}
+.tiket:hover .tiket-kilau,
+.tiket:focus-visible .tiket-kilau {
+  transform: translateX(120%);
+}
+
+.tiket:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 2px rgba(176, 21, 27, 0.3),
+    0 10px 22px -8px rgba(176, 21, 27, 0.6);
+}
+.tiket:active:not(:disabled) {
+  transform: translateY(0);
+}
+.tiket:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.tiket:disabled {
+  cursor: not-allowed;
+  background: var(--color-line);
+  color: var(--color-muted-2);
+  box-shadow: none;
+}
+.tiket:disabled .tiket-perforasi {
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tiket,
+  .tiket-kilau {
+    transition: none;
+  }
+}

@@ -51,14 +51,28 @@ export default function ClaimModal({ item, onTutup }: { item: ItemPromo; onTutup
   const [nama, setNama] = useState('');
   const [alamat, setAlamat] = useState('');
   const [terdaftar, setTerdaftar] = useState(false);
-  const [mengecek, setMengecek] = useState(false);
+  /**
+   * Keadaan pengecekan nomor ke database pelanggan lama.
+   *   kosong  — nomornya belum lengkap, tidak ada yang perlu dicek
+   *   menunggu— nomor sudah lengkap, sedang menunggu jeda ketik selesai
+   *   jalan   — permintaan sedang di udara
+   *   selesai — jawabannya sudah ada (ketemu ATAU tidak ketemu)
+   *
+   * Tombol Lanjut hanya hidup pada keadaan 'selesai'. Sebelumnya tombol itu
+   * hidup begitu nomornya lolos pola, sehingga pelanggan lama yang mengetik
+   * cepat lalu langsung menekan Lanjut akan dibawa ke form "isi nama" —
+   * padahal namanya ada di database dan sedang dalam perjalanan.
+   */
   const [sibuk, setSibuk] = useState(false);
   const [galat, setGalat] = useState('');
   const [claimNo, setClaimNo] = useState('');
   const [claimTok, setClaimTok] = useState('');
   const [statusBayar, setStatusBayar] = useState('Menunggu pembayaran…');
 
-  const sudahLookup = useRef('');
+  const [cek, setCek] = useState<'kosong' | 'menunggu' | 'jalan' | 'selesai'>('kosong');
+  // Menandai apakah isi kolom nama berasal dari database, bukan diketik
+  // pelanggan — supaya isian manualnya tidak ikut terhapus saat nomor diubah.
+  const namaOtomatis = useRef(false);
 
   // Esc menutup, dan scroll halaman dikunci supaya latar tidak ikut bergerak.
   useEffect(() => {
@@ -74,21 +88,35 @@ export default function ClaimModal({ item, onTutup }: { item: ItemPromo; onTutup
     };
   }, [onTutup, tahap]);
 
+  const nomorValid = /^(?:\+?62|0)8[1-9][0-9]{6,11}$/.test(phone.replace(/[\s.-]/g, ''));
+
   // ── Cek nomor ke database pelanggan lama ────────────────────────────────
   useEffect(() => {
-    const bersih = phone.replace(/\D/g, '');
-    if (bersih.length < 9 || tahap !== 'nomor') return;
-    if (sudahLookup.current === bersih) return;
+    if (tahap !== 'nomor') return;
+
+    if (!nomorValid) {
+      setCek('kosong');
+      setTerdaftar(false);
+      if (namaOtomatis.current) {
+        setNama('');
+        setAlamat('');
+        namaOtomatis.current = false;
+      }
+      return;
+    }
+
+    setCek('menunggu');
+    const ctrl = new AbortController();
 
     const t = setTimeout(async () => {
-      sudahLookup.current = bersih;
-      setMengecek(true);
+      setCek('jalan');
       setGalat('');
       try {
         const res = await fetch('/api/v1/lookup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone }),
+          signal: ctrl.signal,
         });
         const d = (await res.json()) as {
           ok: boolean;
@@ -98,37 +126,47 @@ export default function ClaimModal({ item, onTutup }: { item: ItemPromo; onTutup
           address?: string;
           message?: string;
         };
-        if (!d.ok) {
-          setGalat(d.message ?? 'Gagal mengecek nomor.');
-          return;
-        }
-        if (!d.valid) {
-          setTerdaftar(false);
-          return;
-        }
-        setTerdaftar(Boolean(d.found));
-        if (d.found) {
-          setNama(d.name ?? '');
+        if (ctrl.signal.aborted) return;
+
+        if (d.ok && d.valid && d.found && d.name) {
+          setTerdaftar(true);
+          setNama(d.name);
           setAlamat(d.address ?? '');
+          namaOtomatis.current = true;
+        } else {
+          setTerdaftar(false);
+          if (namaOtomatis.current) {
+            setNama('');
+            setAlamat('');
+            namaOtomatis.current = false;
+          }
         }
-      } catch {
-        // Bridge mati bukan urusan pelanggan — lanjut isi manual.
+      } catch (e) {
+        if ((e as Error)?.name === 'AbortError') return;
+        // Jembatan ke database lama mati bukan urusan orang yang mau bayar:
+        // alurnya diteruskan ke pengisian manual.
         setTerdaftar(false);
       } finally {
-        setMengecek(false);
+        if (!ctrl.signal.aborted) setCek('selesai');
       }
     }, 420);
 
-    return () => clearTimeout(t);
-  }, [phone, tahap]);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [phone, tahap, nomorValid]);
 
-  const nomorValid = /^(?:\+?62|0)8[1-9][0-9]{6,11}$/.test(phone.replace(/[\s.-]/g, ''));
+  const sedangCek = cek === 'menunggu' || cek === 'jalan';
+  const siapLanjut = nomorValid && cek === 'selesai';
 
   function lanjutDariNomor() {
     if (!nomorValid) {
       setGalat('Nomor HP belum benar. Contoh: 0822 5200 1234');
       return;
     }
+    // Penjaga kedua, kalau-kalau tombolnya tetap terpicu (mis. tombol Enter).
+    if (cek !== 'selesai') return;
     setGalat('');
     setTahap(terdaftar ? 'konfirmasi' : 'data');
   }
@@ -291,25 +329,29 @@ export default function ClaimModal({ item, onTutup }: { item: ItemPromo; onTutup
                     id="hp"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && siapLanjut) lanjutDariNomor();
+                    }}
                     inputMode="tel"
                     autoComplete="tel"
                     placeholder="0822 5200 1234"
                     autoFocus
                     className="w-full rounded-xl border border-line py-3.5 pl-4 pr-11 text-[16px] font-semibold outline-none transition focus:border-bss focus:ring-4 focus:ring-bss/10"
                   />
-                  {mengecek && (
+                  {sedangCek && (
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-2">
                       <Spinner />
                     </span>
                   )}
                 </div>
                 <p className="mt-2 text-[12.5px] leading-relaxed text-muted">
-                  Dicocokkan otomatis dengan data pelanggan BSS. Kalau sudah pernah servis di sini,
-                  nama dan alamat terisi sendiri.
+                  {sedangCek
+                    ? 'Mengecek nomor di data pelanggan BSS…'
+                    : 'Dicocokkan otomatis dengan data pelanggan BSS. Kalau sudah pernah servis di sini, nama dan alamat terisi sendiri.'}
                 </p>
               </div>
 
-              {terdaftar && (
+              {cek === 'selesai' && terdaftar && (
                 <div className="anim-up rounded-xl border border-ok/20 bg-ok-bg px-4 py-3">
                   <Badge tone="ok">TERDAFTAR DI DATABASE BSS</Badge>
                   <p className="mt-2 text-[15px] font-bold text-ink">{nama}</p>
@@ -317,13 +359,23 @@ export default function ClaimModal({ item, onTutup }: { item: ItemPromo; onTutup
                 </div>
               )}
 
+              {cek === 'selesai' && !terdaftar && (
+                <div className="anim-up rounded-xl border border-line bg-line-2 px-4 py-3">
+                  <p className="text-[13.5px] leading-relaxed text-muted">
+                    Nomor ini belum terdaftar. Di langkah berikutnya kamu tinggal mengisi nama —
+                    sekali saja, seterusnya otomatis.
+                  </p>
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={lanjutDariNomor}
-                disabled={!nomorValid}
-                className="w-full rounded-xl bg-bss py-3.5 text-[15px] font-bold text-white transition hover:bg-bss-dark disabled:bg-line disabled:text-muted-2"
+                disabled={!siapLanjut}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-bss py-3.5 text-[15px] font-bold text-white transition hover:bg-bss-dark disabled:bg-line disabled:text-muted-2"
               >
-                Lanjut
+                {sedangCek && <Spinner />}
+                {sedangCek ? 'Mengecek nomor…' : 'Lanjut'}
               </button>
             </>
           )}
